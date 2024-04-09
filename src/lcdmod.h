@@ -10,18 +10,19 @@ enum : UCommand
   LINE2,
   LINE3,
   LINE4,
+  RAW,
   CLEAR,
   BL_ON,
   BL_OFF,
   BL_AUTO,
-  CUSTOM_CHAR0,
-  CUSTOM_CHAR1,
-  CUSTOM_CHAR2,
-  CUSTOM_CHAR3,
-  CUSTOM_CHAR4,
-  CUSTOM_CHAR5,
-  CUSTOM_CHAR6,
-  CUSTOM_CHAR7,
+  SET_CUSTOM_CHAR0,
+  SET_CUSTOM_CHAR1,
+  SET_CUSTOM_CHAR2,
+  SET_CUSTOM_CHAR3,
+  SET_CUSTOM_CHAR4,
+  SET_CUSTOM_CHAR5,
+  SET_CUSTOM_CHAR6,
+  SET_CUSTOM_CHAR7,
 };
 
 #define LCD_D4 PIN_PA4
@@ -44,6 +45,8 @@ void LCD_Clear();
 void LCD_Send(uint8_t data);
 void LCD_SendCommand(uint8_t data);
 void LCD_Backlight(uint8_t value);
+void LCD_createChar(uint8_t location, uint8_t charmap[]);
+
 
 
 

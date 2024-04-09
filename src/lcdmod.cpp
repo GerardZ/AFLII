@@ -48,12 +48,12 @@ void LCD_createChar(uint8_t location, uint8_t charmap[])
     location &= 0x7; // we only have 8 locations 0-7
 
     LCD_SendCommand(LCD_SETCGRAMADDR | (location << 3));
-    delayMicroseconds(30);
+    //delayMicroseconds(30);
 
     for (int i = 0; i < 8; i++)
     {
         LCD_Send(charmap[i]); // call the virtual write method
-        delayMicroseconds(40);
+        //delayMicroseconds(40);
     }
 }
 
@@ -69,7 +69,7 @@ void LCD_Clear() // clear Screen
 
 void LCD_Backlight(uint8_t value)
 {
-    if (value)
+    if (value != 0)
         digitalWrite(LCD_BL, HIGH);
     else
         digitalWrite(LCD_BL, LOW);
