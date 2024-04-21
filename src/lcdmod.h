@@ -42,10 +42,14 @@ void LCD_Write(uint8_t chr, uint8_t line = 1, uint8_t index = 0);
 void LCD_Write(uint8_t *charArray, uint8_t length, uint8_t line = 1, uint8_t index = 0);
 void LCD_Send(uint8_t data);
 void LCD_Clear();
-void LCD_Send(uint8_t data);
 void LCD_SendCommand(uint8_t data);
+void LCD_SendData(uint8_t data);
 void LCD_Backlight(uint8_t value);
 void LCD_createChar(uint8_t location, uint8_t charmap[]);
+void WaitBusy();
+void Pulse_EN();
+void LCD_ShortDelay();
+
 
 
 

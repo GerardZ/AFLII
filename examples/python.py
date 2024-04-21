@@ -1,6 +1,6 @@
 import smbus2
 import time
-from datetime import datetime
+import datetime
 
 from zoneinfo import ZoneInfo
 
@@ -29,15 +29,10 @@ class UCommand(Enum):
 # Define the I2C bus. Raspberry Pi typically uses 1, but some models use 0.
 bus_number = 1
 bus = smbus2.SMBus(bus_number)
+busStatus = True
 
 # Define the I2C address of the slave device
 device_address = 0x21  # Replace 0x10 with your device's address
-
-# Define the string to send
-string_to_send = "Pietje !"
-
-# Convert the string to bytes
-bytes_to_send = list(bytearray(string_to_send, 'utf-8'))
 
 plus = [  0b11111,
             0b11011,
@@ -66,44 +61,63 @@ test = [    0b01110,
 
 def Write_I2C(address, command, string = ""):
     arr = list(bytearray(string, 'utf-8'))
-    try:
-        bus.write_i2c_block_data(address, command, arr)
-    except:
-        bus.close()  # Ensure the bus is closed
+    WriteRawArr_I2C(address, command, arr)
+   
 
 def WriteRawArr_I2C(address, command, arr):
+    global busStatus
+    global bus
     try:
+        if not busStatus:
+            bus.close()
+            bus = smbus2.SMBus(bus_number)
+            busStatus = True
         bus.write_i2c_block_data(address, command, arr)
     except:
+        busStatus = False
+        print("Bus error...")
         bus.close()  # Ensure the bus is closed
-
+    time.sleep(0.1)
 
 
 Write_I2C(device_address, 6) # clear
-#time.sleep(0.05)
+time.sleep(0.5)
 WriteRawArr_I2C(device_address, 17, plus)
-#time.sleep(0.05)
+time.sleep(0.5)
 WriteRawArr_I2C(device_address, 16, arrow)
-#time.sleep(0.05)
+time.sleep(0.5)
 WriteRawArr_I2C(device_address, 15, test)
-#time.sleep(0.05)
+time.sleep(0.5)
 Write_I2C(device_address, 3, "Char enzo : " + chr(7) + chr(6)+ chr(5))
 
-try:
-    # Send bytes over I2C
-    #for byte in bytes_to_send:
-    #bus.write_i2c_block_data(device_address, 2, bytes_to_send)
-    Write_I2C(device_address, 2, "Dit moet werken.toch")
-    #time.sleep(0.01)  # Short delay to ensure the slave can process the data
-    print(f"Sent: {string_to_send}")
-    while True:
-        timeString = datetime.now(ZoneInfo("Europe/Amsterdam")).strftime("%H:%M:%S %Z")
-        print(timeString)
-        #bytes_to_send = list(bytearray(timeString, 'utf-8'))
-        #bus.write_i2c_block_data(device_address, 1, bytes_to_send) 
-        Write_I2C(device_address, 1, timeString)
-        time.sleep(.999)
-finally:
-    bus.close()  # Ensure the bus is closed
+
+# Send bytes over I2C
+#for byte in bytes_to_send:
+#bus.write_i2c_block_data(device_address, 2, bytes_to_send)
+Write_I2C(device_address, 2, "Dit moet werken.     ")
+#time.sleep(0.01)  # Short delay to ensure the slave can process the data
+
+def GetTimeString(curTime):
+    return curTime.strftime("%H:%M:%S %Z")
+
+def GetTime():
+    return datetime.datetime.now(ZoneInfo("Europe/Amsterdam"))
+
+while True:
+
+    curTime = GetTime()
+
+    timeString = GetTimeString(curTime)
+    print(timeString)
+
+    dateString = datetime.date.today().strftime('%d-%m-%Y')
+    #bytes_to_send = list(bytearray(timeString, 'utf-8'))
+    #bus.write_i2c_block_data(device_address, 1, bytes_to_send) 
+    Write_I2C(device_address, 1, timeString)
+    Write_I2C(device_address, 2, dateString)
+    while (curTime.second == GetTime().second):
+        pass
+
+        
 
 

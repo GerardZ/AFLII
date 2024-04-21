@@ -14,27 +14,25 @@ void DoLCD();
 
 struct I2CBUF
 {
-  uint8_t len;
-  uint8_t command;
-  uint8_t data[22];
-  uint32_t commandBusy;
+  volatile uint8_t len;
+  volatile uint8_t command;
+  volatile uint8_t data[20];
 };
 
+// volatile I2CBUF i2cBuffer;
 volatile I2CBUF i2cBuffer;
 
 void receiveDataWire(int numBytes)
-{ // the Wire API tells us how many bytes
-  i2cBuffer.len = numBytes - 1;
+{
+  i2cBuffer.len = numBytes - 1; // -1 `CAUSE byte0 is command
   i2cBuffer.command = Wire.read();
-  for (uint8_t i = 0; i < numBytes - 1; i++)
+
+  for (uint8_t i = 0; (i < numBytes - 1) && (i < 20); i++)
   {
     i2cBuffer.data[i] = Wire.read();
   }
 
-  //while(i2cBuffer.commandBusy > millis()){}
-  //if (i2cBuffer.command >= SET_CUSTOM_CHAR0 && i2cBuffer.command <= SET_CUSTOM_CHAR7){
-    //delay(30);
-    //}
+  // WaitBusy();
 }
 
 void transmitDataWire()
@@ -118,16 +116,16 @@ void setup()
   LCD_Write("2nd line...", 2);
 
   LCD_Write("3rd line...", 3);
-  LCD_Send(0);
-  LCD_Send(1);
-  LCD_Send(2);
+  LCD_SendData(0);
+  LCD_SendData(1);
+  LCD_SendData(2);
   LCD_Write("4th line...", 4);
 
   setupI2C();
 }
 
-uint8_t line[16];
-uint16_t count = 0;
+// uint8_t line[16];
+volatile uint16_t count = 0;
 
 void WriteCount(uint16_t inCount)
 {
@@ -148,9 +146,9 @@ void WriteCount(uint16_t inCount)
     }
     else
       dec = zero;
-    LCD_Send(dec);
+    LCD_SendData(dec);
   }
-  LCD_Send(count + 0x30);
+  LCD_SendData(count + 0x30);
 }
 
 void DoLCD()
@@ -162,24 +160,27 @@ void DoLCD()
     LCD_Write(i2cBuffer.data, i2cBuffer.len, i2cBuffer.command, 0);
 
   if (i2cBuffer.command == CLEAR)
+  {
     LCD_Clear();
+    // delay(50);
+  }
 
   if (i2cBuffer.command == BL_OFF)
   {
     LCD_Backlight(0);
-    //LCD_Write("BL off...", 3);
+    // LCD_Write("BL off...", 3);
   }
 
   if (i2cBuffer.command == BL_ON)
-      {
+  {
     LCD_Backlight(255);
-    //LCD_Write("BL on...", 3);
+    // LCD_Write("BL on...", 3);
   }
 
   if (i2cBuffer.command >= SET_CUSTOM_CHAR0 && i2cBuffer.command <= SET_CUSTOM_CHAR7)
   {
-    LCD_createChar(i2cBuffer.command - SET_CUSTOM_CHAR0, const_cast<uint8_t*>(i2cBuffer.data));
-    i2cBuffer.commandBusy = millis() + 50;
+    LCD_createChar(i2cBuffer.command - SET_CUSTOM_CHAR0, const_cast<uint8_t *>(i2cBuffer.data));
+    // delay(10);
   }
 
   i2cBuffer.command = NOP;
