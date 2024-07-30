@@ -10,8 +10,6 @@
 
 void DoLCD();
 
-// volatile inline uint8_t i2cBuf[22];
-
 struct I2CBUF
 {
   volatile uint8_t len;
@@ -19,12 +17,11 @@ struct I2CBUF
   volatile uint8_t data[20];
 };
 
-// volatile I2CBUF i2cBuffer;
 volatile I2CBUF i2cBuffer;
 
 void receiveDataWire(int numBytes)
 {
-  i2cBuffer.len = numBytes - 1;       // -1 byte0 is command
+  i2cBuffer.len = numBytes - 1; // -1 byte0 is command
   i2cBuffer.command = Wire.read();
 
   for (uint8_t i = 0; (i < numBytes - 1) && (i < 20); i++)
@@ -57,99 +54,14 @@ void setupI2C()
 
 // I2C Slave end
 
-/*
-// PWM
-unsigned int Period = 0xFFFF;
-
-void setup() {                // We will be outputting PWM on PB0
-  pinMode(PIN_PB0, OUTPUT);   // PB0 - TCA0 WO0, pin7 on 14-pin parts
-  takeOverTCA0();             // This replaces disabling and resettng the timer, required previously.
-  TCA0.SINGLE.CTRLB = (TCA_SINGLE_CMP0EN_bm | TCA_SINGLE_WGMODE_SINGLESLOPE_gc);
-  TCA0.SINGLE.PER   = Period; // Count all the way up to 0xFFFF
-  //                             At 20MHz, this gives ~305Hz PWM
-  TCA0.SINGLE.CMP0  = 0;
-  TCA0.SINGLE.CTRLA = TCA_SINGLE_ENABLE_bm; // enable the timer with no prescaler
-}
-
-void loop() {
-  PWMDemo(150000);  // 150kHz
-  PWMDemo(70000);   // 70kHz
-  PWMDemo(15000);   // 15kHz
-  PWMDemo(3000);    // 3kHz
-  PWMDemo(120);     // 120Hz
-  PWMDemo(35);      // 35Hz
-  PWMDemo(13);      // 13Hz
-}
-
-void PWMDemo(unsigned long frequency) {
-  setFrequency(frequency);
-  setDutyCycle(64); // ~25%
-  delay(4000);
-  setDutyCycle(128);// ~50%
-  delay(4000);
-  setDutyCycle(192);// ~75%
-  delay(4000);
-}
-
-void setDutyCycle(byte duty) {
-  TCA0.SINGLE.CMP0 = map(duty, 0, 255, 0, Period);
-}
-
-void setFrequency(unsigned long freqInHz) {
-  unsigned long tempperiod = (F_CPU / freqInHz);
-  byte presc = 0;
-  while (tempperiod > 65536 && presc < 7) {
-    presc++;
-    tempperiod      = tempperiod >> (presc > 4 ? 2 : 1);
-  }
-  Period            = tempperiod;
-  TCA0.SINGLE.CTRLA = (presc << 1) | TCA_SINGLE_ENABLE_bm;
-  TCA0.SINGLE.PER   = Period;
-}
-// end PWM
-*/
-
-volatile int8_t pwmValue = 1;
-volatile int8_t pwmCount;
-
-ISR(TCA0_OVF_vect) {
-    pwmCount++;
-    if (pwmCount > 31) pwmCount = 0;
-
-    digitalWrite(LCD_BL, pwmValue > pwmCount);
-
-    // Clear the interrupt flag
-    TCA0.SINGLE.INTFLAGS = TCA_SINGLE_OVF_bm;
-}
-
-void setupBLInt()
-{
-     // Disable interrupts
-    cli();
-
-    // Set the TCA0 to Normal mode (by default it's in Split mode)
-    TCA0.SINGLE.CTRLD = 0;
-    TCA0.SINGLE.CTRLB = 0; // Normal mode
-    TCA0.SINGLE.CTRLC = 0; // No force compare
-    TCA0.SINGLE.CTRLECLR = TCA_SINGLE_CMD_gm; // No command
-
-    // Set the period (8 MHz / 64 prescaler / 1000 Hz - 1)
-    TCA0.SINGLE.PER = (8000000 / 64 / 3200) - 1;
-
-    // Enable overflow interrupt
-    TCA0.SINGLE.INTCTRL = TCA_SINGLE_OVF_bm;
-
-    // Set the prescaler and enable the timer
-    TCA0.SINGLE.CTRLA = TCA_SINGLE_CLKSEL_DIV64_gc | TCA_SINGLE_ENABLE_bm;
-
-    // Enable global interrupts
-    sei();
-}
 
 
-void setup()
-{
-  LCD_Init();
+void demo(){
+   // just for demonstration actually...
+  LCD_createChar(0, Smiley);
+  LCD_createChar(1, Bell);
+  LCD_createChar(2, Heart);
+  
   LCD_Write("Hello world!");
   LCD_Write("2nd line...", 2);
 
@@ -159,9 +71,15 @@ void setup()
   LCD_SendData(2);
   LCD_Write("4th line...", 4);
 
+}
+
+void setup()
+{
+  LCD_Init();
+
   setupI2C();
 
-  setupBLInt();
+  demo();
 }
 
 // uint8_t line[16];
@@ -233,7 +151,7 @@ void loop()
   LCD_Write("Count: ", 4);
   WriteCount(count);
 
-  pwmValue = count / 256 / 8;
+  SetBacklightDim(count / 256);
 
   DoLCD();
 }

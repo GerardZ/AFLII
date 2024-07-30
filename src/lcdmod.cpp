@@ -14,7 +14,11 @@ Features:
 
 volatile boolean LCDBusy;
 
-byte smiley[] = {
+volatile int8_t pwmValue = 15;
+volatile int8_t pwmCount;
+
+// some demo characters
+byte Smiley[] = {
     B00000,
     B10001,
     B00000,
@@ -44,6 +48,44 @@ byte Bell[] = {
     B00000,
     B00100,
     B00000};
+
+ISR(TCA0_OVF_vect) {            // backlight ISR
+    pwmCount++;
+    if (pwmCount > 31) pwmCount = 0;
+
+    digitalWrite(LCD_BL, pwmValue > pwmCount);
+
+    // Clear the interrupt flag
+    TCA0.SINGLE.INTFLAGS = TCA_SINGLE_OVF_bm;
+}
+
+void setupBLInterrupt()
+{
+     // Disable interrupts
+    cli();
+
+    // Set the TCA0 to Normal mode (by default it's in Split mode)
+    TCA0.SINGLE.CTRLD = 0;
+    TCA0.SINGLE.CTRLB = 0; // Normal mode
+    TCA0.SINGLE.CTRLC = 0; // No force compare
+    TCA0.SINGLE.CTRLECLR = TCA_SINGLE_CMD_gm; // No command
+
+    // Set the period (8 MHz / 64 prescaler / 1000 Hz - 1)
+    TCA0.SINGLE.PER = (8000000 / 64 / 3200) - 1;
+
+    // Enable overflow interrupt
+    TCA0.SINGLE.INTCTRL = TCA_SINGLE_OVF_bm;
+
+    // Set the prescaler and enable the timer
+    TCA0.SINGLE.CTRLA = TCA_SINGLE_CLKSEL_DIV64_gc | TCA_SINGLE_ENABLE_bm;
+
+    // Enable global interrupts
+    sei();
+}
+
+void SetBacklightDim(uint8_t dimValue){
+    pwmValue = dimValue / 8;
+}
 
 void DataBusInput()
 {
@@ -117,7 +159,7 @@ bool checkBit(byte targetByte, int position)
 
 void LCD_Clear() // clear Screen
 {
-    LCD_SendCommand(0x01);
+    LCD_SendCommand(LCD_CLEAR);
 }
 
 void LCD_Backlight(uint8_t value)
@@ -142,24 +184,20 @@ void LCD_Init() // Reset, Init & Clear LCD
     pinMode(LCD_RW, OUTPUT);
     DataBusOutput();
 
-    LCD_SendCommand(0x33); // Must initialize to 8-line mode at first
-    LCD_SendCommand(0x32); // Then initialize to 4-line mode
-    LCD_SendCommand(0x28); // 2 Lines & 5*7 dots
-    LCD_SendCommand(0x0C); // Enable display without cursor
+    LCD_SendCommand(LCD_Mode_8Bit); // Must initialize to 8-line mode at first
+    LCD_SendCommand(LCD_Mode_4Bit); // Then initialize to 4-line mode
+    LCD_SendCommand(LCD_Mode_2Line_5x7); // 2 Lines & 5*7 dots
+    LCD_SendCommand(LCD_On_CursorOff); // Enable display without cursor
     LCD_Clear();
 
-    digitalWrite(LCD_BL, HIGH);     // Backlight on
-
-    LCD_createChar(0, smiley);
-    LCD_createChar(1, Bell);
-    LCD_createChar(2, Heart);
+    setupBLInterrupt();
 }
 
 void LCD_SetCursor(uint8_t x, uint8_t y)
 {
     y &= 3;
-    const uint8_t startLine[] = {0x00, 0x40, 0x14, 0x54}; // mem map for lines: ln1: 0x00, ln2: 0x40, ln3: 0x14, ln4: 0x54
-    LCD_SendCommand(0x80 + startLine[y] + x);             // Move cursor
+    const uint8_t startLine[] = {LCD_line0_addr, LCD_line1_addr, LCD_line2_addr, LCD_line3_addr}; // mem map for lines: ln1: 0x00, ln2: 0x40, ln3: 0x14, ln4: 0x54
+    LCD_SendCommand(LCD_SetCursorPosition + startLine[y] + x);             // Move cursor
 }
 
 void LCD_Delay1()
