@@ -24,7 +24,7 @@ volatile I2CBUF i2cBuffer;
 
 void receiveDataWire(int numBytes)
 {
-  i2cBuffer.len = numBytes - 1; // -1 `CAUSE byte0 is command
+  i2cBuffer.len = numBytes - 1;       // -1 byte0 is command
   i2cBuffer.command = Wire.read();
 
   for (uint8_t i = 0; (i < numBytes - 1) && (i < 20); i++)
@@ -109,6 +109,44 @@ void setFrequency(unsigned long freqInHz) {
 // end PWM
 */
 
+volatile int8_t pwmValue = 1;
+volatile int8_t pwmCount;
+
+ISR(TCA0_OVF_vect) {
+    pwmCount++;
+    if (pwmCount > 31) pwmCount = 0;
+
+    digitalWrite(LCD_BL, pwmValue > pwmCount);
+
+    // Clear the interrupt flag
+    TCA0.SINGLE.INTFLAGS = TCA_SINGLE_OVF_bm;
+}
+
+void setupBLInt()
+{
+     // Disable interrupts
+    cli();
+
+    // Set the TCA0 to Normal mode (by default it's in Split mode)
+    TCA0.SINGLE.CTRLD = 0;
+    TCA0.SINGLE.CTRLB = 0; // Normal mode
+    TCA0.SINGLE.CTRLC = 0; // No force compare
+    TCA0.SINGLE.CTRLECLR = TCA_SINGLE_CMD_gm; // No command
+
+    // Set the period (8 MHz / 64 prescaler / 1000 Hz - 1)
+    TCA0.SINGLE.PER = (8000000 / 64 / 3200) - 1;
+
+    // Enable overflow interrupt
+    TCA0.SINGLE.INTCTRL = TCA_SINGLE_OVF_bm;
+
+    // Set the prescaler and enable the timer
+    TCA0.SINGLE.CTRLA = TCA_SINGLE_CLKSEL_DIV64_gc | TCA_SINGLE_ENABLE_bm;
+
+    // Enable global interrupts
+    sei();
+}
+
+
 void setup()
 {
   LCD_Init();
@@ -122,6 +160,8 @@ void setup()
   LCD_Write("4th line...", 4);
 
   setupI2C();
+
+  setupBLInt();
 }
 
 // uint8_t line[16];
@@ -192,6 +232,8 @@ void loop()
 
   LCD_Write("Count: ", 4);
   WriteCount(count);
+
+  pwmValue = count / 256 / 8;
 
   DoLCD();
 }

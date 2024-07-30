@@ -148,7 +148,7 @@ void LCD_Init() // Reset, Init & Clear LCD
     LCD_SendCommand(0x0C); // Enable display without cursor
     LCD_Clear();
 
-    digitalWrite(LCD_BL, HIGH);
+    digitalWrite(LCD_BL, HIGH);     // Backlight on
 
     LCD_createChar(0, smiley);
     LCD_createChar(1, Bell);
