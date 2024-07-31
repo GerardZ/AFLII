@@ -3051,7 +3051,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "Potentiometer_SMD:Potentiometer_Vishay_TS53YJ_Vertical"
+		(property "Footprint" "ownFootprints:Potentiometer_SMD_EBay_10k"
 			(at 214.63 88.9 0)
 			(effects
 				(font
