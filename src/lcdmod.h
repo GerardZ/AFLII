@@ -27,12 +27,12 @@ enum : UCommand
 
 #define LCD_D4 PIN_PA4
 #define LCD_D5 PIN_PA5
-#define LCD_D6 PIN_PA2
+#define LCD_D6 PIN_PB3 //PIN_PA2
 #define LCD_D7 PIN_PA7
 #define LCD_RS PIN_PA1
 #define LCD_RW PIN_A6
 #define LCD_EN PIN_PA3
-#define LCD_BL PIN_PB3
+#define LCD_BL PIN_PA2 //PIN_PB3
 
 #define LCD_SETCGRAMADDR 0x40
 
@@ -67,7 +67,8 @@ void LCD_createChar(uint8_t location, uint8_t charmap[]);
 void WaitBusy();
 void Pulse_EN();
 void LCD_ShortDelay();
-void SetBacklightDim(uint8_t dimValue);
+void SetBacklightDimInt(uint8_t dimValue);
+void SetBacklightDimTimer(uint8_t dimValue);
 
 extern byte Smiley[];
 extern byte Heart[];

@@ -79,6 +79,9 @@ void setup()
 
   setupI2C();
 
+  SetBacklightDimInt(10);
+  //SetBacklightDimTimer(100);
+
   demo();
 }
 
@@ -151,7 +154,7 @@ void loop()
   LCD_Write("Count: ", 4);
   WriteCount(count);
 
-  SetBacklightDim(count / 256);
+  
 
   DoLCD();
 }

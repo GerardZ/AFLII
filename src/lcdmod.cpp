@@ -49,9 +49,11 @@ byte Bell[] = {
     B00100,
     B00000};
 
-ISR(TCA0_OVF_vect) {            // backlight ISR
+ISR(TCA0_OVF_vect)
+{ // backlight ISR
     pwmCount++;
-    if (pwmCount > 31) pwmCount = 0;
+    if (pwmCount > 31)
+        pwmCount = 0;
 
     digitalWrite(LCD_BL, pwmValue > pwmCount);
 
@@ -61,13 +63,13 @@ ISR(TCA0_OVF_vect) {            // backlight ISR
 
 void setupBLInterrupt()
 {
-     // Disable interrupts
+    // Disable interrupts
     cli();
 
     // Set the TCA0 to Normal mode (by default it's in Split mode)
     TCA0.SINGLE.CTRLD = 0;
-    TCA0.SINGLE.CTRLB = 0; // Normal mode
-    TCA0.SINGLE.CTRLC = 0; // No force compare
+    TCA0.SINGLE.CTRLB = 0;                    // Normal mode
+    TCA0.SINGLE.CTRLC = 0;                    // No force compare
     TCA0.SINGLE.CTRLECLR = TCA_SINGLE_CMD_gm; // No command
 
     // Set the period (8 MHz / 64 prescaler / 1000 Hz - 1)
@@ -83,8 +85,78 @@ void setupBLInterrupt()
     sei();
 }
 
-void SetBacklightDim(uint8_t dimValue){
+void SetBacklightDimInt(uint8_t dimValue)
+{
     pwmValue = dimValue / 8;
+}
+
+void setupTimerPWM2()
+{
+
+    cli(); // Disable interrupts
+    // TCA0.SINGLE.CTRLB = TCA_SINGLE_WGMODE_SINGLESLOPE_gc; // Set the waveform generation mode to Single Slope PWM
+
+    // Enable Compare Channel 2 (WO2)
+    // TCA0.SINGLE.CTRLB |= TCA_SINGLE_CMP2EN_bm;
+
+    TCA0.SINGLE.CTRLB = TCA_SINGLE_WGMODE_SINGLESLOPE_gc | TCA_SINGLE_CMP2EN_bm;
+
+    TCA0.SINGLE.EVCTRL &= ~(TCA_SINGLE_CNTEI_bm);
+
+    // Set the period (top value)
+    TCA0.SINGLE.PERBUF = 0xFF;
+
+    // Set the duty cycle for Compare Channel 2 (50% duty cycle)
+    TCA0.SINGLE.CMP2 = 0x80;
+
+    // Select the clock source and start the timer (divided by 64)
+    // TCA0.SINGLE.CTRLA = TCA_SINGLE_CLKSEL_DIV64_gc | TCA_SINGLE_ENABLE_bm;
+    TCA0.SINGLE.CTRLA = 7;
+
+    // Enable interrupts
+    sei();
+
+    PORTA.DIRSET = PIN2_bm;
+}
+
+#if defined(MILLIS_USE_TIMERA0) || defined(__AVR_ATtinyxy2__)
+#error "This sketch takes over TCA0, don't use for millis here.  Pin mappings on 8-pin parts are different"
+#endif
+
+void setupTimerPWM()
+{
+    // PA2...
+
+    
+    PORTA.DIRSET = PIN2_bm;
+
+    // Disable interrupts
+    cli();
+
+    takeOverTCA0();
+
+    // Set the waveform generation mode to Single Slope PWM
+    TCA0.SINGLE.CTRLB = TCA_SINGLE_WGMODE_SINGLESLOPE_gc;
+
+    // Enable Compare Channel 2 (WO2)
+    TCA0.SINGLE.CTRLB |= TCA_SINGLE_CMP2EN_bm;
+
+    // Set the period (top value)
+    TCA0.SINGLE.PER = 0xFF;
+
+    // Set the duty cycle for Compare Channel 2 (50% duty cycle)
+    TCA0.SINGLE.CMP2 = 0x80;
+
+    // Select the clock source and start the timer (divided by 64)
+    TCA0.SINGLE.CTRLA = TCA_SINGLE_CLKSEL_DIV64_gc | TCA_SINGLE_ENABLE_bm;
+
+    // Enable interrupts
+    sei();
+}
+
+void SetBacklightDimTimer(uint8_t dimValue)
+{
+    TCA0.SINGLE.CMP2 = dimValue;
 }
 
 void DataBusInput()
@@ -92,7 +164,7 @@ void DataBusInput()
     /*
     Sets D4-D7 as input, then sets LCD_RW high (read).
     */
-    
+
     pinMode(LCD_D4, INPUT); // D4-D7 input
     pinMode(LCD_D5, INPUT);
     pinMode(LCD_D6, INPUT);
@@ -106,7 +178,7 @@ void DataBusOutput()
     /*
     Sets LCD_RW low, then sets D4-D7 as output
     */
-    
+
     digitalWrite(LCD_RW, LOW); // SET WRITE MODE, actually set LCD databus as input.
 
     pinMode(LCD_D7, OUTPUT); // D4-D7 output
@@ -135,13 +207,13 @@ void LCD_createChar(uint8_t location, uint8_t charmap[])
                             B00000 }
                         );
     // which will create a heart character on location @3
-    
+
     // To send it:
     LCD_Write("This is a heart: ", 2);  // write on line 2, note that cursor stays at last char
     LCD_SendData(3);                    // will actually write char from user memory #3
-                        
+
     */
-    
+
     location &= 0x7; // we only have 8 locations 0-7
 
     LCD_SendCommand(LCD_SETCGRAMADDR | (location << 3));
@@ -172,7 +244,7 @@ void LCD_Backlight(uint8_t value)
 
 void LCD_Init() // Reset, Init & Clear LCD
 {
-    /* 
+    /*
     Set appropriate pins in needed IO mode,
     Send init to LCD
     Clear LCD
@@ -184,20 +256,23 @@ void LCD_Init() // Reset, Init & Clear LCD
     pinMode(LCD_RW, OUTPUT);
     DataBusOutput();
 
-    LCD_SendCommand(LCD_Mode_8Bit); // Must initialize to 8-line mode at first
-    LCD_SendCommand(LCD_Mode_4Bit); // Then initialize to 4-line mode
+    LCD_SendCommand(LCD_Mode_8Bit);      // Must initialize to 8-line mode at first
+    LCD_SendCommand(LCD_Mode_4Bit);      // Then initialize to 4-line mode
     LCD_SendCommand(LCD_Mode_2Line_5x7); // 2 Lines & 5*7 dots
-    LCD_SendCommand(LCD_On_CursorOff); // Enable display without cursor
+    LCD_SendCommand(LCD_On_CursorOff);   // Enable display without cursor
     LCD_Clear();
 
     setupBLInterrupt();
+    //setupTimerPWM();
+
+    //analogWrite(LCD_BL, 18); // 50% duty cycle
 }
 
 void LCD_SetCursor(uint8_t x, uint8_t y)
 {
     y &= 3;
     const uint8_t startLine[] = {LCD_line0_addr, LCD_line1_addr, LCD_line2_addr, LCD_line3_addr}; // mem map for lines: ln1: 0x00, ln2: 0x40, ln3: 0x14, ln4: 0x54
-    LCD_SendCommand(LCD_SetCursorPosition + startLine[y] + x);             // Move cursor
+    LCD_SendCommand(LCD_SetCursorPosition + startLine[y] + x);                                    // Move cursor
 }
 
 void LCD_Delay1()
@@ -226,14 +301,14 @@ void WaitBusy() // wait for busy flag
     while (LCDBusy) // read and wait busy
     {
         digitalWrite(LCD_EN, HIGH); // clock in high-nibble, with BUSY
-        //LCD_ShortDelay();
+        // LCD_ShortDelay();
         delayMicroseconds(10);
 
         LCDBusy = digitalRead(LCD_D7);
 
-        digitalWrite(LCD_EN, LOW); 
+        digitalWrite(LCD_EN, LOW);
 
-        Pulse_EN();                 // clock in lo-nibble
+        Pulse_EN(); // clock in lo-nibble
     }
 
     DataBusOutput(); // Set bus output again
@@ -247,7 +322,7 @@ void LCD_ShortDelay()
 void Pulse_EN() // Clock-in data
 {
     digitalWrite(LCD_EN, HIGH);
-    //LCD_ShortDelay();
+    // LCD_ShortDelay();
     delayMicroseconds(10);
     digitalWrite(LCD_EN, LOW);
 }
