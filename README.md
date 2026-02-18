@@ -34,3 +34,5 @@ Todo:
 *   The WaitBusy should hold I2C communication by clock stretching. We now still need a delay @host side.
 *   Better PCB design
 *   More & clearer examples
+
+Schema:

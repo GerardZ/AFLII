@@ -3046,7 +3046,8 @@
 	)
 	(symbol
 		(lib_id "Device:R_Potentiometer_Trim")
-		(at 214.63 88.9 180)
+		(at 214.63 88.9 0)
+		(mirror y)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -3054,7 +3055,7 @@
 		(dnp no)
 		(uuid "46457e07-5d81-43e1-859b-31ef33e20c78")
 		(property "Reference" "RV1"
-			(at 217.17 90.1701 0)
+			(at 217.17 87.6299 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3063,7 +3064,7 @@
 			)
 		)
 		(property "Value" "R_Potentiometer_Trim"
-			(at 217.17 87.6301 0)
+			(at 217.17 90.1699 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3286,7 +3287,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "ownFootprints:LCD2004"
+		(property "Footprint" "ownFootprints:LCD2008"
 			(at 147.32 85.09 0)
 			(effects
 				(font
